@@ -3,7 +3,10 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from app.api.models import DocumentUploadResponse
+from app.api.models import (
+    DocumentResponse,
+    DocumentUploadResponse,
+)
 from app.core.dependencies import get_retrieval_service
 from app.documents.chunking import TextChunker
 from app.documents.service import DocumentService
@@ -25,6 +28,38 @@ SUPPORTED_CONTENT_TYPES = {
     "application/pdf",
     "text/plain",
 }
+
+
+@router.get(
+    "",
+    response_model=list[DocumentResponse],
+)
+def list_documents():
+    retrieval_service = get_retrieval_service()
+
+    return retrieval_service.list_documents()
+
+
+@router.delete(
+    "/{document_id}",
+)
+def delete_document(document_id: str):
+    retrieval_service = get_retrieval_service()
+
+    deleted = retrieval_service.delete_document(
+        document_id
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found.",
+        )
+
+    return {
+        "document_id": document_id,
+        "deleted": True,
+    }
 
 
 @router.post(
@@ -49,7 +84,10 @@ async def upload_document(file: UploadFile = File(...)):
 
     try:
         filename = file.filename or "unknown"
-        content_type = file.content_type or "application/octet-stream"
+        content_type = (
+            file.content_type
+            or "application/octet-stream"
+        )
 
         document = document_service.extract_text(
             temp_path,

@@ -130,10 +130,74 @@ class RetrievalService:
 
         return True
 
+    def list_documents(self) -> list[dict[str, Any]]:
+        self.create_collection()
+
+        documents: dict[str, dict[str, Any]] = {}
+
+        offset = None
+
+        while True:
+            points, next_offset = self.client.scroll(
+                collection_name=self.collection_name,
+                offset=offset,
+                limit=100,
+                with_payload=True,
+                with_vectors=False,
+            )
+
+            for point in points:
+                payload = point.payload or {}
+
+                document_id = payload.get("document_id")
+
+                if not document_id:
+                    continue
+
+                if document_id not in documents:
+                    documents[document_id] = {
+                        "document_id": document_id,
+                        "filename": payload.get("filename"),
+                        "content_type": payload.get(
+                            "content_type"
+                        ),
+                        "chunk_count": 0,
+                    }
+
+                documents[document_id]["chunk_count"] += 1
+
+            if next_offset is None:
+                break
+
+            offset = next_offset
+
+        return list(documents.values())
+
+    def delete_document(self, document_id: str) -> bool:
+        self.create_collection()
+
+        if not self.document_exists(document_id):
+            return False
+
+        self.client.delete(
+            collection_name=self.collection_name,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            ),
+        )
+
+        return True
+
     def search(
         self,
         query: str,
         limit: int = 5,
+        score_threshold: float = 0.25,
     ) -> list[dict[str, Any]]:
         self.create_collection()
 
@@ -147,10 +211,16 @@ class RetrievalService:
             limit=limit,
         ).points
 
+        filtered_results = [
+            result
+            for result in results
+            if result.score >= score_threshold
+        ]
+
         return [
             {
                 "score": result.score,
                 **result.payload,
             }
-            for result in results
+            for result in filtered_results
         ]

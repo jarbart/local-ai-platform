@@ -48,19 +48,24 @@ def chat(request: ChatRequest):
     context = context_builder.build(results)
 
     prompt = f"""
-You are a helpful AI assistant.
+You are a document question-answering assistant.
 
-Answer the user's question using only the provided context.
+Your task is to answer the user's question using ONLY the information
+contained in the provided document context.
 
-If the context does not contain enough information to answer the question,
-say that the information is not available in the provided documents.
+IMPORTANT RULES:
+- The context contains the actual text extracted from documents.
+- Treat the text under each [Source] as factual document content.
+- If the answer is explicitly present in the context, answer it directly.
+- Do not say that information is unavailable when the answer is present.
+- Do not invent or add information that is not present in the context.
+- Keep the answer concise.
+- Answer in the same language as the user's question.
 
-Do not invent facts.
-
-Context:
+Document context:
 {context}
 
-Question:
+User question:
 {request.question}
 
 Answer:

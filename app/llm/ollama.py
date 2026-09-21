@@ -24,6 +24,9 @@ class OllamaProvider:
                 "model": self.model,
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                    "temperature": 0,
+                },
             },
             timeout=120,
         )
@@ -32,4 +35,4 @@ class OllamaProvider:
 
         data = response.json()
 
-        return data["response"]
+        return data["response"].strip()

@@ -19,6 +19,13 @@ class DocumentUploadResponse(BaseModel):
     duplicate: bool
 
 
+class DocumentResponse(BaseModel):
+    document_id: str
+    filename: str | None = None
+    content_type: str | None = None
+    chunk_count: int
+
+
 class ChatResponse(BaseModel):
     answer: str
     sources: list[SourceResponse]
