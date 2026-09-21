@@ -731,8 +731,4 @@ AI applications
 
 This approach keeps the project usable at every stage while allowing the architecture to evolve based on actual requirements.
 
----
 
-## License
-
-License information will be added before the first formal public release.

@@ -3,10 +3,9 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from app.core.dependencies import get_retrieval_service
 from app.documents.chunking import TextChunker
 from app.documents.service import DocumentService
-from app.embeddings.service import EmbeddingService
-from app.retrieval.service import RetrievalService
 
 
 router = APIRouter(
@@ -16,15 +15,9 @@ router = APIRouter(
 
 document_service = DocumentService()
 
-embedding_service = EmbeddingService()
-
 chunker = TextChunker(
     chunk_size=1000,
     overlap=100,
-)
-
-retrieval_service = RetrievalService(
-    embedding_service=embedding_service,
 )
 
 
@@ -65,6 +58,8 @@ async def upload_document(file: UploadFile = File(...)):
                 status_code=422,
                 detail="The PDF does not contain extractable text.",
             )
+
+        retrieval_service = get_retrieval_service()
 
         indexed = retrieval_service.index_chunks(
             chunks,

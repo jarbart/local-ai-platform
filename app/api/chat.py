@@ -1,24 +1,17 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.embeddings.service import EmbeddingService
-from app.llm.ollama import OllamaProvider
+from app.core.dependencies import (
+    get_llm_provider,
+    get_retrieval_service,
+)
 from app.retrieval.context import ContextBuilder
-from app.retrieval.service import RetrievalService
 
 
 router = APIRouter(
     prefix="/chat",
     tags=["chat"],
 )
-
-embedding_service = EmbeddingService()
-
-retrieval_service = RetrievalService(
-    embedding_service=embedding_service,
-)
-
-llm = OllamaProvider()
 
 context_builder = ContextBuilder()
 
@@ -37,6 +30,9 @@ class ChatRequest(BaseModel):
 
 @router.post("")
 def chat(request: ChatRequest):
+    retrieval_service = get_retrieval_service()
+    llm = get_llm_provider()
+
     results = retrieval_service.search(
         request.question,
         limit=request.limit,
