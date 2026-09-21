@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.models import ChatResponse
 from app.core.dependencies import (
     get_llm_provider,
     get_retrieval_service,
@@ -28,7 +29,7 @@ class ChatRequest(BaseModel):
     )
 
 
-@router.post("")
+@router.post("", response_model=ChatResponse)
 def chat(request: ChatRequest):
     retrieval_service = get_retrieval_service()
     llm = get_llm_provider()

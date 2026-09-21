@@ -3,6 +3,7 @@ from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from app.api.models import DocumentUploadResponse
 from app.core.dependencies import get_retrieval_service
 from app.documents.chunking import TextChunker
 from app.documents.service import DocumentService
@@ -21,7 +22,10 @@ chunker = TextChunker(
 )
 
 
-@router.post("/upload")
+@router.post(
+    "/upload",
+    response_model=DocumentUploadResponse,
+)
 async def upload_document(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
         raise HTTPException(
