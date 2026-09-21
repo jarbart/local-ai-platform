@@ -633,7 +633,6 @@ These are planned improvements rather than accidental omissions.
 * [ ] benchmark datasets
 * [ ] end-to-end evaluation
 * [ ] performance measurements
-* [ ] architecture documentation
 * [ ] example datasets
 * [ ] reproducible demo
 
