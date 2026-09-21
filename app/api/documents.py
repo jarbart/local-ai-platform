@@ -21,16 +21,21 @@ chunker = TextChunker(
     overlap=100,
 )
 
+SUPPORTED_CONTENT_TYPES = {
+    "application/pdf",
+    "text/plain",
+}
+
 
 @router.post(
     "/upload",
     response_model=DocumentUploadResponse,
 )
 async def upload_document(file: UploadFile = File(...)):
-    if file.content_type != "application/pdf":
+    if file.content_type not in SUPPORTED_CONTENT_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="Only PDF files are supported.",
+            detail="Only PDF and TXT files are supported.",
         )
 
     suffix = Path(file.filename or "").suffix
@@ -43,8 +48,8 @@ async def upload_document(file: UploadFile = File(...)):
         temp_path = Path(temp_file.name)
 
     try:
-        filename = file.filename or "unknown.pdf"
-        content_type = file.content_type or "application/pdf"
+        filename = file.filename or "unknown"
+        content_type = file.content_type or "application/octet-stream"
 
         document = document_service.extract_text(
             temp_path,
@@ -60,7 +65,7 @@ async def upload_document(file: UploadFile = File(...)):
         if not chunks:
             raise HTTPException(
                 status_code=422,
-                detail="The PDF does not contain extractable text.",
+                detail="The document does not contain extractable text.",
             )
 
         retrieval_service = get_retrieval_service()
