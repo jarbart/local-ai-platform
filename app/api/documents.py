@@ -1,7 +1,7 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.documents.chunking import TextChunker
 from app.documents.service import DocumentService
@@ -31,9 +31,10 @@ retrieval_service = RetrievalService(
 @router.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
-        return {
-            "error": "Only PDF files are supported."
-        }
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported.",
+        )
 
     suffix = Path(file.filename or "").suffix
 
@@ -58,6 +59,12 @@ async def upload_document(file: UploadFile = File(...)):
             document_id=document.document_id,
             pages=document.metadata["pages"],
         )
+
+        if not chunks:
+            raise HTTPException(
+                status_code=422,
+                detail="The PDF does not contain extractable text.",
+            )
 
         indexed = retrieval_service.index_chunks(
             chunks,

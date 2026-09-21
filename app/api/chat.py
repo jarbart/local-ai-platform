@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from app.embeddings.service import EmbeddingService
 from app.llm.ollama import OllamaProvider
@@ -24,8 +24,15 @@ context_builder = ContextBuilder()
 
 
 class ChatRequest(BaseModel):
-    question: str
-    limit: int = 3
+    question: str = Field(
+        min_length=1,
+        max_length=2000,
+    )
+    limit: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+    )
 
 
 @router.post("")
@@ -34,6 +41,12 @@ def chat(request: ChatRequest):
         request.question,
         limit=request.limit,
     )
+
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail="No relevant information was found in the indexed documents.",
+        )
 
     context = context_builder.build(results)
 
@@ -62,6 +75,7 @@ Answer:
         {
             "chunk_id": result.get("chunk_id"),
             "document_id": result.get("document_id"),
+            "filename": result.get("filename"),
             "page_number": result.get("page_number"),
             "score": result.get("score"),
         }
