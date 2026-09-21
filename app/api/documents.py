@@ -15,11 +15,14 @@ router = APIRouter(
 )
 
 document_service = DocumentService()
+
 embedding_service = EmbeddingService()
+
 chunker = TextChunker(
     chunk_size=1000,
     overlap=100,
 )
+
 retrieval_service = RetrievalService(
     embedding_service=embedding_service,
 )
@@ -42,10 +45,13 @@ async def upload_document(file: UploadFile = File(...)):
         temp_path = Path(temp_file.name)
 
     try:
+        filename = file.filename or "unknown.pdf"
+        content_type = file.content_type or "application/pdf"
+
         document = document_service.extract_text(
             temp_path,
-            filename=file.filename or "unknown.pdf",
-            content_type=file.content_type or "application/pdf",
+            filename=filename,
+            content_type=content_type,
         )
 
         chunks = chunker.chunk_pages(
@@ -53,7 +59,11 @@ async def upload_document(file: UploadFile = File(...)):
             pages=document.metadata["pages"],
         )
 
-        retrieval_service.index_chunks(chunks)
+        indexed = retrieval_service.index_chunks(
+            chunks,
+            filename=document.filename,
+            content_type=document.content_type,
+        )
 
         return {
             "document_id": document.document_id,
@@ -61,7 +71,8 @@ async def upload_document(file: UploadFile = File(...)):
             "content_type": document.content_type,
             "page_count": document.metadata["page_count"],
             "chunk_count": len(chunks),
-            "indexed": True,
+            "indexed": indexed,
+            "duplicate": not indexed,
         }
 
     finally:

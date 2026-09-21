@@ -1,5 +1,5 @@
+from hashlib import sha256
 from pathlib import Path
-from uuid import uuid4
 
 import pymupdf
 
@@ -13,6 +13,8 @@ class DocumentService:
         filename: str,
         content_type: str,
     ) -> NormalizedDocument:
+        document_id = self._calculate_document_id(file_path)
+
         document = pymupdf.open(file_path)
 
         pages = []
@@ -30,7 +32,7 @@ class DocumentService:
         text = "\n".join(page["text"] for page in pages)
 
         return NormalizedDocument(
-            document_id=str(uuid4()),
+            document_id=document_id,
             filename=filename,
             content_type=content_type,
             text=text,
@@ -41,3 +43,13 @@ class DocumentService:
                 "extraction_method": "pymupdf",
             },
         )
+
+    @staticmethod
+    def _calculate_document_id(file_path: Path) -> str:
+        hasher = sha256()
+
+        with file_path.open("rb") as file:
+            for chunk in iter(lambda: file.read(1024 * 1024), b""):
+                hasher.update(chunk)
+
+        return hasher.hexdigest()

@@ -2,7 +2,14 @@ from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchValue,
+    PointStruct,
+    VectorParams,
+)
 
 from app.documents.chunking import TextChunk
 
@@ -49,14 +56,44 @@ class RetrievalService:
             )
         )
 
+    def document_exists(self, document_id: str) -> bool:
+        self.create_collection()
+
+        result = self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="document_id",
+                        match=MatchValue(value=document_id),
+                    )
+                ]
+            ),
+            limit=1,
+            with_payload=False,
+            with_vectors=False,
+        )
+
+        points, _ = result
+
+        return len(points) > 0
+
     def index_chunks(
         self,
         chunks: list[TextChunk],
-    ) -> None:
+        *,
+        filename: str | None = None,
+        content_type: str | None = None,
+    ) -> bool:
         if not chunks:
-            return
+            return False
 
         self.create_collection()
+
+        document_id = chunks[0].document_id
+
+        if self.document_exists(document_id):
+            return False
 
         vectors = self.embedding_service.embed_texts(
             [chunk.text for chunk in chunks]
@@ -75,6 +112,8 @@ class RetrievalService:
                         "chunk_index": chunk.chunk_index,
                         "page_number": chunk.page_number,
                         "text": chunk.text,
+                        "filename": filename,
+                        "content_type": content_type,
                     },
                 )
             )
@@ -83,6 +122,8 @@ class RetrievalService:
             collection_name=self.collection_name,
             points=points,
         )
+
+        return True
 
     def search(
         self,
