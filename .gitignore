@@ -13,6 +13,7 @@ test.txt
 # Environment
 .env
 .env.*
+!.env.example
 
 # IDE
 .vscode/

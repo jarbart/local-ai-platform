@@ -1,13 +1,14 @@
 from sentence_transformers import SentenceTransformer
+from app.core.config import settings
 
 
 class EmbeddingService:
     def __init__(
         self,
-        model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+        model_name: str | None = None,
     ):
-        self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
+        self.model_name = model_name or settings.embedding_model
+        self.model = SentenceTransformer(self.model_name)
 
     def embed_text(self, text: str) -> list[float]:
         embedding = self.model.encode(

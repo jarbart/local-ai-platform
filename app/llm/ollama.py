@@ -1,14 +1,18 @@
 import requests
 
+from app.core.config import settings
+
 
 class OllamaProvider:
     def __init__(
         self,
-        model: str = "llama3.1:8b",
-        base_url: str = "http://localhost:11434",
+        model: str | None = None,
+        base_url: str | None = None,
     ):
-        self.model = model
-        self.base_url = base_url.rstrip("/")
+        self.model = model or settings.ollama_model
+        self.base_url = (
+            base_url or settings.ollama_base_url
+        ).rstrip("/")
 
     def generate(
         self,

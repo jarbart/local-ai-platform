@@ -11,6 +11,7 @@ from qdrant_client.models import (
     VectorParams,
 )
 
+from app.core.config import settings
 from app.documents.chunking import TextChunk
 
 
@@ -18,16 +19,20 @@ class RetrievalService:
     def __init__(
         self,
         embedding_service,
-        host: str = "localhost",
-        port: int = 6333,
-        collection_name: str = "documents",
+        host: str | None = None,
+        port: int | None = None,
+        collection_name: str | None = None,
     ):
         self.embedding_service = embedding_service
+
         self.client = QdrantClient(
-            host=host,
-            port=port,
+            host=host or settings.qdrant_host,
+            port=port or settings.qdrant_port,
         )
-        self.collection_name = collection_name
+
+        self.collection_name = (
+            collection_name or settings.qdrant_collection
+        )
 
     def create_collection(self) -> None:
         collections = self.client.get_collections().collections
