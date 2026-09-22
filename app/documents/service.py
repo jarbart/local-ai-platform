@@ -2,6 +2,7 @@ from hashlib import sha256
 from pathlib import Path
 
 import pymupdf
+from docx import Document
 
 from app.documents.models import NormalizedDocument
 
@@ -25,6 +26,16 @@ class DocumentService:
 
         if content_type == "application/pdf":
             return self._extract_pdf(
+                file_path=file_path,
+                document_id=document_id,
+                filename=filename,
+                content_type=content_type,
+            )
+
+        if content_type == (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ):
+            return self._extract_docx(
                 file_path=file_path,
                 document_id=document_id,
                 filename=filename,
@@ -98,6 +109,41 @@ class DocumentService:
                 "pages": pages,
                 "character_count": len(text),
                 "extraction_method": "pymupdf",
+            },
+        )
+
+    def _extract_docx(
+        self,
+        file_path: Path,
+        document_id: str,
+        filename: str,
+        content_type: str,
+    ) -> NormalizedDocument:
+        document = Document(file_path)
+
+        paragraphs = [
+            paragraph.text
+            for paragraph in document.paragraphs
+            if paragraph.text.strip()
+        ]
+
+        text = "\n".join(paragraphs)
+
+        return NormalizedDocument(
+            document_id=document_id,
+            filename=filename,
+            content_type=content_type,
+            text=text,
+            metadata={
+                "page_count": 1,
+                "pages": [
+                    {
+                        "page_number": 1,
+                        "text": text,
+                    }
+                ],
+                "character_count": len(text),
+                "extraction_method": "python_docx",
             },
         )
 

@@ -55,3 +55,56 @@ def test_real_pdf_retrieval():
 
     assert top_result["document_id"] == document.document_id
     assert top_result["page_number"] == 1
+
+
+def test_search_uses_configured_score_threshold(monkeypatch):
+    class FakeEmbeddingService:
+        dimension = 3
+
+        def embed_text(self, text: str):
+            return [1.0, 0.0, 0.0]
+
+    class FakePoint:
+        def __init__(self, score):
+            self.score = score
+            self.payload = {
+                "text": "test",
+                "document_id": "doc-1",
+                "chunk_id": "chunk-1",
+            }
+
+    class FakeQueryResult:
+        def __init__(self):
+            self.points = [
+                FakePoint(0.80),
+                FakePoint(0.40),
+            ]
+
+    class FakeClient:
+        def get_collections(self):
+            class Collections:
+                collections = []
+
+            return Collections()
+
+        def create_collection(self, **kwargs):
+            pass
+
+        def query_points(self, **kwargs):
+            return FakeQueryResult()
+
+    service = RetrievalService(
+        embedding_service=FakeEmbeddingService(),
+    )
+
+    service.client = FakeClient()
+
+    monkeypatch.setattr(
+        "app.retrieval.service.settings.rag_score_threshold",
+        0.50,
+    )
+
+    results = service.search("test")
+
+    assert len(results) == 1
+    assert results[0]["score"] == 0.80

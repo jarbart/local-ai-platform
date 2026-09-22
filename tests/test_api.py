@@ -86,6 +86,7 @@ def test_chat_response_contract(monkeypatch):
                 "filename": "test.pdf",
                 "page_number": 1,
                 "score": 0.9,
+                "text": "Test context",
             }
         ],
     }
@@ -96,16 +97,18 @@ def test_upload_rejects_unsupported_file():
         "/documents/upload",
         files={
             "file": (
-                "test.docx",
+                "test.exe",
                 b"unsupported content",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/octet-stream",
             )
         },
     )
 
     assert response.status_code == 400
     assert response.json() == {
-        "detail": "Only PDF and TXT files are supported."
+        "detail": (
+            "Only PDF, TXT and DOCX files are supported."
+        )
     }
 
 def test_upload_accepts_txt(monkeypatch):
@@ -185,3 +188,78 @@ def test_upload_accepts_txt(monkeypatch):
         "indexed": True,
         "duplicate": False,
     }
+
+def test_chat_returns_message_when_no_relevant_context(monkeypatch):
+    class FakeRetrievalService:
+        def search(self, query: str, limit: int):
+            return []
+
+    class FakeLLM:
+        def generate(self, prompt: str):
+            raise AssertionError("LLM should not be called")
+
+    monkeypatch.setattr(
+        chat_module,
+        "get_retrieval_service",
+        lambda: FakeRetrievalService(),
+    )
+
+    monkeypatch.setattr(
+        chat_module,
+        "get_llm_provider",
+        lambda: FakeLLM(),
+    )
+
+    response = client.post(
+        "/chat",
+        json={
+            "question": "Informacja, której nie ma w dokumentach",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "answer": (
+            "Informacja nie jest dostępna w dostarczonych "
+            "dokumentach."
+        ),
+        "sources": [],
+    }
+
+def test_upload_accepts_docx(tmp_path):
+    from docx import Document
+
+    file_path = tmp_path / "test.docx"
+
+    document = Document()
+    document.add_paragraph("Dokument DOCX do testu API.")
+    document.save(file_path)
+
+    with file_path.open("rb") as file:
+        response = client.post(
+            "/documents/upload",
+            files={
+                "file": (
+                    "test.docx",
+                    file.read(),
+                    (
+                        "application/"
+                        "vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    ),
+                )
+            },
+        )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["filename"] == "test.docx"
+    assert data["content_type"] == (
+        "application/"
+        "vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert data["page_count"] == 1
+    assert data["chunk_count"] >= 1
+    assert data["indexed"] is True
+    assert data["duplicate"] is False

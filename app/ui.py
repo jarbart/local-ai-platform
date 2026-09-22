@@ -86,26 +86,32 @@ def render_sources(sources):
         else:
             relevance = f"{score:.4f}"
 
-        with st.expander(
-            f"📄 Source {index} · {filename}",
-        ):
-            col1, col2 = st.columns(2)
+    with st.expander(
+        f"📄 Source {index} · {filename}",
+    ):
+        col1, col2 = st.columns(2)
 
-            with col1:
-                st.caption("Document")
-                st.write(filename)
+        with col1:
+            st.caption("Document")
+            st.write(filename)
 
-            with col2:
-                st.caption("Page")
-                st.write(
-                    page if page is not None else "N/A"
-                )
-
-            st.caption("Relevance")
-            st.progress(
-                min(max(float(score or 0), 0.0), 1.0),
-                text=relevance,
+        with col2:
+            st.caption("Page")
+            st.write(
+                page if page is not None else "N/A"
             )
+
+        st.caption("Relevance")
+        st.progress(
+            min(max(float(score or 0), 0.0), 1.0),
+            text=relevance,
+        )
+
+        text = source.get("text")
+
+        if text:
+            st.caption("Retrieved content")
+            st.code(text, language=None)
 
 
 def render_documents():
@@ -191,8 +197,8 @@ with st.sidebar:
 
     uploaded_file = st.file_uploader(
         "Upload a document",
-        type=["pdf", "txt"],
-        help="Supported formats: PDF and TXT",
+        type=["pdf", "txt", "docx"],
+        help="Supported formats: PDF, TXT and DOCX",
     )
 
     if uploaded_file is not None:

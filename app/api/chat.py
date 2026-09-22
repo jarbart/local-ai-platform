@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.api.models import ChatResponse
@@ -40,10 +40,13 @@ def chat(request: ChatRequest):
     )
 
     if not results:
-        raise HTTPException(
-            status_code=404,
-            detail="No relevant information was found in the indexed documents.",
-        )
+        return {
+            "answer": (
+                "Informacja nie jest dostępna w dostarczonych "
+                "dokumentach."
+            ),
+            "sources": [],
+        }
 
     context = context_builder.build(results)
 
@@ -80,6 +83,7 @@ Answer:
             "filename": result.get("filename"),
             "page_number": result.get("page_number"),
             "score": result.get("score"),
+            "text": result.get("text"),
         }
         for result in results
     ]

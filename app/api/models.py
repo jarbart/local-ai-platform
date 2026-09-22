@@ -7,6 +7,7 @@ class SourceResponse(BaseModel):
     filename: str | None = None
     page_number: int | None = None
     score: float | None = None
+    text: str | None = None
 
 
 class DocumentUploadResponse(BaseModel):

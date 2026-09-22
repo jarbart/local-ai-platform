@@ -27,6 +27,10 @@ chunker = TextChunker(
 SUPPORTED_CONTENT_TYPES = {
     "application/pdf",
     "text/plain",
+    (
+        "application/"
+        "vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ),
 }
 
 
@@ -70,7 +74,7 @@ async def upload_document(file: UploadFile = File(...)):
     if file.content_type not in SUPPORTED_CONTENT_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="Only PDF and TXT files are supported.",
+            detail="Only PDF, TXT and DOCX files are supported.",
         )
 
     suffix = Path(file.filename or "").suffix
