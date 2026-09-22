@@ -197,7 +197,7 @@ class RetrievalService:
         self,
         query: str,
         limit: int = 5,
-        score_threshold: float = 0.25,
+        score_threshold: float | None = None,
     ) -> list[dict[str, Any]]:
         self.create_collection()
 
@@ -211,10 +211,16 @@ class RetrievalService:
             limit=limit,
         ).points
 
+        threshold = (
+            settings.rag_score_threshold
+            if score_threshold is None
+            else score_threshold
+        )
+
         filtered_results = [
             result
             for result in results
-            if result.score >= score_threshold
+            if result.score >= threshold
         ]
 
         return [

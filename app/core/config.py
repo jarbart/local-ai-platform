@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
 
+    rag_score_threshold: float = 0.25
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
